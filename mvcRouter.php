@@ -113,6 +113,7 @@ class MvcRouter {
 	}
 	
 	public static function GetActionUrl($controllerType, $action, $data=array()) {
+		$data = MvcBaseModelBinder::Unbind($data);
 		if (array_values($data) === $data) return self::GetActionUrlFriendly($controllerType, $action, $data);
 
 		$path = self::$appRoot . ($controllerType ? self::GetControllerName($controllerType) . "/" : "") . ($action ? $action . "/" : "");
@@ -131,12 +132,10 @@ class MvcRouter {
 		$path = self::$appRoot . ($controllerType ? self::GetControllerName($controllerType) . "/" : "") . ($action ? $action . "/" : "");
 
 		$parameters = "";
-		foreach($data as $key=>$value) {
-			if ($parameters) $parameters .= "/";
-
+		foreach($data as $value) {
 			// don't encode, but replace spaces
 			// this could create problems
-			$parameters .= str_replace(" ","+",trim($value));
+			$parameters .= str_replace(" ","+",trim($value)) . "/";
 		}
 		
 		return self::$writeLowercaseUrls ? strtolower($path . $parameters) : ($path . $parameters);
