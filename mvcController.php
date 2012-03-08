@@ -25,6 +25,8 @@ abstract class MvcController {
 	public $routeRequest = null;
 	public $viewData = array();
 	public $modelState = null;
+	public $context = null; // TODO: fix (see ExecuteRouteRequest, MvcModelBinders::BindModels)
+							// just create property $boundModels
 
 	function __construct() {
     }

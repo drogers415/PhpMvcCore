@@ -34,24 +34,20 @@ class MvcRouter {
 	public static function FindRouteRequest() {
 		$request = new MvcRouteRequest();
 
-		$params = self::$appRoot == "/"
-				  ? @split("/", substr($_SERVER['REQUEST_URI'],1))
-				  : @split("/", str_ireplace(self::$appRoot, "", $_SERVER['REQUEST_URI']));
+		$uri = parse_url($_SERVER["REQUEST_URI"]);
+		$path = @split("/", str_ireplace(self::$appRoot, "", $uri["path"]));
 
 		// controller
-		if (count($params) && strlen($params[0]) > 0) $request->controllerType = array_shift($params);
+		if (count($path) && strlen($path[0]) > 0) $request->controllerType = array_shift($path);
 		$request->controllerType = self::GetControllerType($request->controllerType);
 
 		// action
-		if (count($params) && strlen($params[0]) > 0) $request->action = array_shift($params);
+		if (count($path) && strlen($path[0]) > 0) $request->action = array_shift($path);
 
 		// data
-		while(count($params)) {
-			if (strlen($params[0]) > 0 && $params[0][0] != "?")
-				$request->data[] = urldecode(array_shift($params));
-			else
-				array_shift($params);
-
+		while(count($path)) {
+			$d = urldecode(array_shift($path));
+			if (trim($d)) $request->data[] = urldecode(array_shift($path));
 		}
 
 		return $request;
@@ -113,17 +109,13 @@ class MvcRouter {
 	}
 	
 	public static function GetActionUrl($controllerType, $action, $data=array()) {
-		$data = MvcBaseModelBinder::Unbind($data);
-		if (array_values($data) === $data) return self::GetActionUrlFriendly($controllerType, $action, $data);
+		if (!is_array($data) && !is_object($data))
+			return self::GetActionUrlFriendly($controllerType, $action, array($data));
+		elseif (is_array($data) && array_values($data) === $data)
+			return self::GetActionUrlFriendly($controllerType, $action, $data);
 
 		$path = self::$appRoot . ($controllerType ? self::GetControllerName($controllerType) . "/" : "") . ($action ? $action . "/" : "");
-
-		$parameters = "";
-		foreach($data as $key=>$value) {
-			if ($parameters) $parameters .= "&";
-			if ($key) $parameters .= $key . "=" . urlencode($value);
-		}
-		if ($parameters) $parameters = "?" . $parameters;
+		$parameters = "?" . http_build_query($data);
 		
 		return (self::$writeLowercaseUrls ? strtolower($path) : $path) . $parameters;
 	}

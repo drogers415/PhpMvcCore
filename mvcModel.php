@@ -24,19 +24,6 @@
 class MvcModelBinders {
 	private static $modelBinders = array();
 
-	private static function FindModelBinder($type) {
-		if ($type == null) return new MvcDefaultModelBinder();
-		$type = $type->name;
-
-		if (isset(self::$modelBinders[$type])) {
-			// TODO: test
-			$t = self::$modelBinders[$type];
-			return new $t;
-		}
-		else
-			return new MvcDefaultModelBinder();
-	}
-
 	public static function BindModels(&$controllerObject, $controllerAction, $data=array()) {
 		$controllerObject->context->boundModels = array();
 
@@ -51,66 +38,25 @@ class MvcModelBinders {
 		}
 	}
 
+	private static function FindModelBinder($type) {
+		if ($type == null) return new MvcDefaultModelBinder();
+		$type = $type->name;
+
+		if (isset(self::$modelBinders[$type])) {
+			// TODO: test
+			$t = self::$modelBinders[$type];
+			return new $t;
+		}
+		else
+			return new MvcDefaultModelBinder();
+	}
 }
 
 abstract class MvcBaseModelBinder {
 
 	abstract public function BindModel(&$modelState, $param, &$data=array());
 
-	public static function Unbind($x) {
-		if (is_array($x)) return $x;
-
-		if (is_object($x)) {
-			$data = array();
-			$type = get_class($x);
-			$reflectClass = new ReflectionClass($type);
-			$classProperties = $reflectClass->getProperties();
-
-			foreach($classProperties as $property) {
-				$value = $property->getValue($x);
-
-				if (is_object($value))
-					continue; // not supported
-
-				$name = $property->getName();
-
-				if (is_array($value))
-					foreach($value as $k=>$v)
-						$data[$name . "[" . $k . "]"] = $v;
-				else
-					$data[$name] = $value;
-			}
-
-			return $data;
-		}
-		else
-			return array($x);
-	}
-
-	// bind value of function parameter
-	protected function BindParameter(ReflectionParameter $param, &$data) {
-		if (@$param->getClass() !== null)
-			return null; // not supported
-		else if ($param->isArray())
-			return self::BindArray($param->getName(), $data);
-		else
-			return self::BindSimpleType($param->getName(), $data);
-	}
-
-	// bind value of class property
-	protected function BindProperty($type, ReflectionProperty $property, &$data) {
-		$value = $property->getValue(new $type);
-
-		if (is_object($value))
-			return null; // not supported
-		else if (is_array($value))
-			return self::BindArray($property->getName(), $data);
-		else
-			return self::BindSimpleType($property->getName(), $data);
-	}
-
-	// bind value of simple data type (int, string, boolean)
-	private function BindSimpleType($name, &$data) {
+	protected function FindValue($name, &$data) {
 		// NOTE: See MvcRouteRequest definition for information about "$data."
 
 		if (isset($data[$name]))
@@ -123,43 +69,6 @@ abstract class MvcBaseModelBinder {
 			return array_shift($data);
 		else
 			return null;
-	}
-
-	// bind 1-dimensional array
-	private function BindArray($name, &$data) {
-		$callback = create_function('$key', 'return strpos($key, "' . $name . '[") === 0;');
-
-		$array = null;
-		if (count($array = self::FilterArrayKeys($data, $callback)) < 1)
-			if (count($array = self::FilterArrayKeys($_GET, $callback)) < 1)
-				if (count($array = self::FilterArrayKeys($_POST, $callback)) < 1)
-					return null;
-
-		foreach($array as $key=>$value) {
-			unset($array[$key]);
-			$index = strtok($key, "[");
-			$index = strtok("]");
-			$array[$index] = $value;
-		}
-
-		return $array;
-	}
-
-	private function FilterArrayKeys($array, $callback) {
-		if (!is_array($array)) {
-			trigger_error( 'array_filter_key() expects parameter 1 to be array, ' . gettype($array) . ' given', E_USER_WARNING );
-			return null;
-		}
-		
-		if (empty($array)) return $array;
-		
-		$array = array_flip($array);
-		$array = array_filter($array,$callback);
-		if (empty($array)) return array();
-		
-		$array = array_flip($array);
-
-		return $array;
 	}
 }
 
@@ -174,7 +83,7 @@ class MvcDefaultModelBinder extends MvcBaseModelBinder {
 				$modelState = $this->ValidateClassModel($model);
 		}
 		else
-			$model = $this->BindParameter($param, $data);
+			$model = $this->FindValue($param->getName(), $data);
 
 		return $model;
 	}
@@ -186,7 +95,7 @@ class MvcDefaultModelBinder extends MvcBaseModelBinder {
 		$classProperties = $reflectClass->getProperties();
 
 		foreach($classProperties as $classProperty) {
-			$value = $this->BindProperty($type, $classProperty, $data);
+			$value = $this->FindValue($classProperty->getName(), $data);
 
 			if ($value !== null) {
 				if ($model == null) $model = new $type;
