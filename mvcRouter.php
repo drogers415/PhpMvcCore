@@ -47,7 +47,7 @@ class MvcRouter {
 		// data
 		while(count($path)) {
 			$d = urldecode(array_shift($path));
-			if (trim($d)) $request->data[] = urldecode(array_shift($path));
+			if (trim($d)) $request->data[] = $d;
 		}
 
 		return $request;
