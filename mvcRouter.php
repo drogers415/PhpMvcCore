@@ -35,7 +35,9 @@ class MvcRouter {
 		$request = new MvcRouteRequest();
 
 		$uri = parse_url($_SERVER["REQUEST_URI"]);
-		$path = @split("/", str_ireplace(self::$appRoot, "", $uri["path"]));
+		$path = self::$appRoot == "/"
+		      ? @split("/", substr($uri["path"], 1))
+			  : @split("/", str_ireplace(self::$appRoot, "", $uri["path"]));
 
 		// controller
 		if (count($path) && strlen($path[0]) > 0) $request->controllerType = array_shift($path);
