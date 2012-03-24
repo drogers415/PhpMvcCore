@@ -25,6 +25,7 @@ class MvcRouter {
 	public static $appRoot = "";
 	public static $reRoutes = array();
 
+	public static $routeRequestIgnore = array("[-]", "/\s/"); // controller/action only (does not apply to data)
 	public static $controllersRoot = "controllers/";
 	public static $controllerTypeSuffix = "Controller";
 	public static $viewsRoot = "views/";
@@ -40,11 +41,13 @@ class MvcRouter {
 			  : @split("/", str_ireplace(self::$appRoot, "", $uri["path"]));
 
 		// controller
-		if (count($path) && strlen($path[0]) > 0) $request->controllerType = array_shift($path);
+		if (count($path) && strlen($path[0]) > 0)
+			$request->controllerType = preg_replace(self::$routeRequestIgnore, "", urldecode(array_shift($path)));
 		$request->controllerType = self::GetControllerType($request->controllerType);
 
 		// action
-		if (count($path) && strlen($path[0]) > 0) $request->action = array_shift($path);
+		if (count($path) && strlen($path[0]) > 0)
+			$request->action = preg_replace(self::$routeRequestIgnore, "", urldecode(array_shift($path)));
 
 		// data
 		while(count($path)) {
