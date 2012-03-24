@@ -105,7 +105,9 @@ class MvcHtml {
 
 	public static function RenderControllerViewResult($result) {
 		$__viewContext = new MvcViewContext();
-		$__viewContext->routeRequest = $result->routeRequest;
+		$__viewContext->controllerType = $result->routeRequest->controllerType;
+		$__viewContext->action = $result->routeRequest->action;
+		$__viewContext->view = $result->view;
 		$__viewContext->viewData = $result->viewData;
 		$__viewContext->modelState = $result->modelState;
 
@@ -136,7 +138,7 @@ class MvcHtml {
 	}
 
 	public static function RenderPartialView(MvcViewContext &$__viewContext, $view, $__model=null) {
-		include(MvcRouter::GetViewFilePath($__viewContext->routeRequest->controllerType, $view));
+		include(MvcRouter::GetViewFilePath($__viewContext->controllerType, $view));
 	}
 
 	private static function ParseAttributes($attributes) {

@@ -22,7 +22,9 @@
 ************************************************************************/
 
 class MvcViewContext {
-	var $routeRequest = null;
+	var $controllerType = "";
+	var $action = "";
+	var $view = "";
 	var $viewData = array();
 	var $modelState = null;
 }
