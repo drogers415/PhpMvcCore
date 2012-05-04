@@ -23,12 +23,14 @@
 
 class MvcRouter {
 	public static $appRoot = "";
-	public static $reRoutes = array();
+	private static $reRoutes = array();
 
 	public static $routeRequestIgnore = array("[-]", "/\s/"); // controller/action only (does not apply to data)
 	public static $controllersRoot = "controllers/";
 	public static $controllerTypeSuffix = "Controller";
 	public static $viewsRoot = "views/";
+
+	public static $errorControllerName = "error";
 
 	public static $writeLowercaseUrls = true;
 
@@ -42,12 +44,12 @@ class MvcRouter {
 
 		// controller
 		if (count($path) && strlen($path[0]) > 0)
-			$request->controllerType = preg_replace(self::$routeRequestIgnore, "", urldecode(array_shift($path)));
+			$request->controllerType = urldecode(array_shift($path));
 		$request->controllerType = self::GetControllerType($request->controllerType);
 
 		// action
 		if (count($path) && strlen($path[0]) > 0)
-			$request->action = preg_replace(self::$routeRequestIgnore, "", urldecode(array_shift($path)));
+			$request->action = urldecode(array_shift($path));
 
 		// data
 		while(count($path)) {
@@ -59,7 +61,6 @@ class MvcRouter {
 	}
 
 	public static function ReRouteRequest($request) {
-
 		$controllerType = strtolower($request->controllerType);
 		$action = strtolower($request->action);
 
@@ -82,15 +83,41 @@ class MvcRouter {
 			$request->action = $reRoute->action;
 		}
 
+		$request->controllerType = preg_replace(self::$routeRequestIgnore, "", $request->controllerType);
+		$request->action = preg_replace(self::$routeRequestIgnore, "", $request->action);
+
 		return $request;
 	}
 
 	public static function ExecuteRouteRequest($request) {
 		$request = self::ReRouteRequest($request);
 
-		require_once(self::GetControllerFilePath($request->controllerType));
-		$controllerObject = new $request->controllerType;
-		return $controllerObject->ExecuteRouteRequest($request);
+		try {
+			$controllerFilePath = self::GetControllerFilePath($request->controllerType);
+
+			if (!file_exists($controllerFilePath))
+				throw new Exception("controller file path not found [" . $controllerFilePath . "]", 404);
+
+			require_once($controllerFilePath);
+			$controllerObject = new $request->controllerType;
+
+			if (!method_exists($controllerObject, $request->action))
+				throw new Exception("controller type [" . $request->controllerType . "] does not contain the action [" . $request->action . "]", 404);
+
+			return $controllerObject->ExecuteRouteRequest($request);
+		}
+		catch(Exception $ex) {
+			// it's important to do ReRouteRequest on errorRequest here, even though it will be done again in recursive ExecuteRouteRequest (first line)
+			// for two reasons: 1) so we can check if the error controller file exists, 2) to compare to current request to prevent infinite loop
+			$errorRequest = self::ReRouteRequest(new MvcRouteRequest(self::$errorControllerName, "_" . $ex->getCode(), array($ex)));
+			// if an error controller exists, try to execute a request to the error controller, else echo and exit.
+			if (file_exists(self::GetControllerFilePath($errorRequest->controllerType))
+				&& (strcasecmp($request->controllerType,$errorRequest->controllerType) || strcasecmp($request->action,$errorRequest->action))) {
+				return self::ExecuteRouteRequest($errorRequest);
+			}
+			else
+				echo $ex->getCode() . " error while executing mvc request: " . $ex->getMessage() . "<br/>";exit;
+		}
 	}
 
 	public static function AddReRoute($request, $reRoute) {
@@ -130,6 +157,7 @@ class MvcRouter {
 
 		$parameters = "";
 		foreach($data as $value) {
+			if (!trim($value)) continue;
 			// don't encode, but replace spaces
 			// this could create problems
 			$parameters .= str_replace(" ","+",trim($value)) . "/";
