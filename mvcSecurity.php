@@ -23,7 +23,6 @@
 
 class MvcSecurity {
 
-	public static $userContextClassFile = "You need to set MvcSecurity::\$userContextClassFile";
 	public static $userContextKey = "MvcUserContext";
 	private static $lifespanKey = "Lifespan";
 
@@ -36,7 +35,6 @@ class MvcSecurity {
 		if (MvcSecurity::HasUserContext()) {
 			$lifespan = (int)$_COOKIE[MvcSecurity::$userContextKey . MvcSecurity::$lifespanKey];
 
-			require_once(MvcSecurity::$userContextClassFile);
 			// see http://www.phpbuilder.com/board/showthread.php?t=10358820 for reason for stripslashes/str_replace
 			$uContext = stripslashes($_COOKIE[MvcSecurity::$userContextKey]);
 			$uContext = str_replace("\n","",$uContext); 
