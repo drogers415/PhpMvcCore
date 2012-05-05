@@ -98,7 +98,10 @@ class MvcDefaultModelBinder extends MvcBaseModelBinder {
 			$value = $this->FindValue($classProperty->getName(), $data);
 
 			if ($value !== null) {
-				if ($model == null) $model = new $type;
+				if ($model == null)
+					$model = new $type;
+				if ($classProperty->isPublic() == false)
+					$classProperty->setAccessible(true);
 				$classProperty->setValue($model, $value);
 			}
 		}
