@@ -115,7 +115,10 @@ class MvcHtml {
 
 		$__model = $result->model;
 
-		include(MvcRouter::GetViewFilePath($result->routeRequest->controllerType, $result->view));
+		$viewFilePath = MvcRouter::GetViewFilePath($result->routeRequest->controllerType, $result->view);
+		if (!file_exists($viewFilePath))
+			throw new ErrorException("view does not exist [$viewFilePath]", 404);
+		include($viewFilePath);
 	}
 
 	public static function RenderControllerJsonResult($result) {
@@ -138,7 +141,10 @@ class MvcHtml {
 	}
 
 	public static function RenderPartialView(MvcViewContext &$__viewContext, $view, $__model=null) {
-		include(MvcRouter::GetViewFilePath($__viewContext->controllerType, $view));
+		$viewFilePath = MvcRouter::GetViewFilePath($__viewContext->controllerType, $view);
+		if (!file_exists($viewFilePath))
+			throw new ErrorException("view does not exist [$viewFilePath]", 404);
+		include($viewFilePath);
 	}
 
 	private static function ParseAttributes($attributes) {
