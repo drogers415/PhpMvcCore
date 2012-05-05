@@ -30,8 +30,6 @@ class MvcRouter {
 	public static $controllerTypeSuffix = "Controller";
 	public static $viewsRoot = "views/";
 
-	public static $errorControllerName = "error";
-
 	public static $writeLowercaseUrls = true;
 
 	public static function FindRouteRequest() {
@@ -92,32 +90,18 @@ class MvcRouter {
 	public static function ExecuteRouteRequest($request) {
 		$request = self::ReRouteRequest($request);
 
-		try {
-			$controllerFilePath = self::GetControllerFilePath($request->controllerType);
+		$controllerFilePath = self::GetControllerFilePath($request->controllerType);
 
-			if (!file_exists($controllerFilePath))
-				throw new Exception("controller file path not found [" . $controllerFilePath . "]", 404);
+		if (!file_exists($controllerFilePath))
+			throw new ErrorException("controller file not found [" . $controllerFilePath . "]", 404);
 
-			require_once($controllerFilePath);
-			$controllerObject = new $request->controllerType;
+		require_once($controllerFilePath);
+		$controllerObject = new $request->controllerType;
 
-			if (!method_exists($controllerObject, $request->action))
-				throw new Exception("controller type [" . $request->controllerType . "] does not contain the action [" . $request->action . "]", 404);
+		if (!method_exists($controllerObject, $request->action))
+			throw new ErrorException("controller type [" . $request->controllerType . "] does not contain the action [" . $request->action . "]", 404);
 
-			return $controllerObject->ExecuteRouteRequest($request);
-		}
-		catch(Exception $ex) {
-			// it's important to do ReRouteRequest on errorRequest here, even though it will be done again in recursive ExecuteRouteRequest (first line)
-			// for two reasons: 1) so we can check if the error controller file exists, 2) to compare to current request to prevent infinite loop
-			$errorRequest = self::ReRouteRequest(new MvcRouteRequest(self::$errorControllerName, "_" . $ex->getCode(), array($ex)));
-			// if an error controller exists, try to execute a request to the error controller, else echo and exit.
-			if (file_exists(self::GetControllerFilePath($errorRequest->controllerType))
-				&& (strcasecmp($request->controllerType,$errorRequest->controllerType) || strcasecmp($request->action,$errorRequest->action))) {
-				return self::ExecuteRouteRequest($errorRequest);
-			}
-			else
-				echo $ex->getCode() . " error while executing mvc request: " . $ex->getMessage() . "<br/>";exit;
-		}
+		return $controllerObject->ExecuteRouteRequest($request);
 	}
 
 	public static function AddReRoute($request, $reRoute) {
