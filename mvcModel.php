@@ -25,7 +25,7 @@ class MvcModelBinders {
 	private static $modelBinders = array();
 
 	public static function BindModels(&$controllerObject, $controllerAction, $data=array()) {
-		$controllerObject->context->boundModels = array();
+		$controllerObject->boundModels = array();
 
 		// find the controller action parameters
 		$reflMethod = new ReflectionMethod(get_class($controllerObject), $controllerAction);
@@ -34,7 +34,7 @@ class MvcModelBinders {
 		// bind each parameter of the controller action
 		foreach ($methodParams as $methodParam) {
 			$modelBinder = self::FindModelBinder($methodParam->getClass());
-			$controllerObject->context->boundModels[$methodParam->getName()] = $modelBinder->BindModel($controllerObject->modelState, $methodParam, $data);
+			$controllerObject->boundModels[$methodParam->getName()] = $modelBinder->BindModel($controllerObject->modelState, $methodParam, $data);
 		}
 	}
 

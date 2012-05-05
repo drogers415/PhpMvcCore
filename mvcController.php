@@ -25,8 +25,7 @@ abstract class MvcController {
 	public $routeRequest = null;
 	public $viewData = array();
 	public $modelState = null;
-	public $context = null; // TODO: fix (see ExecuteRouteRequest, MvcModelBinders::BindModels)
-							// just create property $boundModels
+	public $boundModels = null;
 
 	function __construct() {
     }
@@ -43,7 +42,7 @@ abstract class MvcController {
 		MvcModelBinders::BindModels($this, $request->action, $request->data);
 
 		// execute request
-		return call_user_func_array(array($this, $request->action), $this->context->boundModels);
+		return call_user_func_array(array($this, $request->action), $this->boundModels);
 	}
 
 	public static function Redirect($controllerName="", $action="", $data=array()) {
