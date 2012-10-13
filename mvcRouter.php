@@ -158,10 +158,14 @@ class MvcRouteRequest {
 						 //		#1: /controller/action/paramValue1 (no param name)
 	                     //		#2: passed in code, for example: $data = array("p1"=>"paramValue1"), see MvcHtml::RenderAction
 
-	function __construct($controllerType="", $action="", $data=array()) {
+	var $custom = array();
+
+	function __construct($controllerType="", $action="", $data=array(), $custom=array()) {
 		$this->controllerType = MvcRouter::GetControllerType($controllerType);
 		$this->action = $action;
 		$this->data = $data;
+
+		$this->custom = $custom;
 	}
 }
 
