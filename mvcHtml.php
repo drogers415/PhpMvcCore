@@ -147,7 +147,7 @@ class MvcHtml {
 		include($viewFilePath);
 	}
 
-	private static function ParseAttributes($attributes) {
+	protected static function ParseAttributes($attributes) {
 		$html = "";
 		foreach($attributes as $key=>$value) {
 			$html .= $key . "=\"" . $value . "\" ";
