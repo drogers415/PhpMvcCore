@@ -173,7 +173,7 @@ class MvcRouter {
 				$path .= "?" . http_build_query($data);
 		}
 		
-		return $path;
+		return self::$writeLowercaseUrls ? strtolower($path) : $path;
 	}
 }
 
