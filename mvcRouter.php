@@ -155,29 +155,25 @@ class MvcRouter {
 	}
 	
 	public static function GetActionUrl($controllerType, $action, $data=array()) {
-		if (!is_array($data) && !is_object($data))
-			return self::GetActionUrlFriendly($controllerType, $action, array($data));
-		elseif (is_array($data) && array_values($data) === $data)
-			return self::GetActionUrlFriendly($controllerType, $action, $data);
+		$path = self::$appRoot;
 
-		$path = self::$appRoot . ($controllerType ? self::GetControllerName($controllerType) . "/" : "") . ($action ? $action . "/" : "");
-		$parameters = "?" . http_build_query($data);
-		
-		return (self::$writeLowercaseUrls ? strtolower($path) : $path) . $parameters;
-	}
+		$path .= $controllerType ? (self::GetControllerName($controllerType) . "/") : "";
+		$path .= $action ? ($action . "/") : "";
 
-	private static function GetActionUrlFriendly($controllerType, $action, $data=array()) {
-		$path = self::$appRoot . ($controllerType ? self::GetControllerName($controllerType) . "/" : "") . ($action ? $action . "/" : "");
+		if ($data) {
+			if (!is_array($data) && !is_object($data))
+				$data = array($data);
 
-		$parameters = "";
-		foreach($data as $value) {
-			if (!trim($value)) continue;
-			// don't encode, but replace spaces
-			// this could create problems
-			$parameters .= str_replace(" ","+",trim($value)) . "/";
+			if (is_array($data) && array_values($data) === $data) {
+				$data = array_diff($data, array("")); // remove empty elements
+				$data = join("/", $data);
+				$path .= trim($data, "/") . "/";
+			}
+			else
+				$path .= "?" . http_build_query($data);
 		}
 		
-		return self::$writeLowercaseUrls ? strtolower($path . $parameters) : ($path . $parameters);
+		return $path;
 	}
 }
 
