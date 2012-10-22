@@ -59,26 +59,48 @@ class MvcRouter {
 	}
 
 	public static function ReRouteRequest($request) {
-		$controllerType = strtolower($request->controllerType);
-		$action = strtolower($request->action);
+		$route = $request->GetRoute();
+		//echo "route  = $route</br/>";
+		$_route = explode("/", $route);
 
-		// ReRoute specific Controller/Action
-		if (isset(self::$reRoutes[$controllerType][$action])) {
-			$reRoute = self::$reRoutes[$controllerType][$action];
-			$request->controllerType = $reRoute->controllerType;
-			$request->action = $reRoute->action;
-		}
+		foreach(self::$reRoutes as $reRouteKey=>$reRoute) {
+			$_reRouteKey = explode("/", $reRouteKey);
+			$totalComparisons = count($_reRouteKey);
 
-		// ReRoute Controller (any Action)
-		elseif (isset(self::$reRoutes[$controllerType]["*"])) {
-			$reRoute = self::$reRoutes[$controllerType]["*"];
-			$request->controllerType = $reRoute->controllerType;
-		}
-		
-		// Default Action (any Controller)
-		if (!$request->action && isset(self::$reRoutes["*"][$action])) {
-			$reRoute = self::$reRoutes["*"][$action];
-			$request->action = $reRoute->action;
+			// check for match
+			for ($i = 0; $i < $totalComparisons; $i++) {
+				if ($i >= count($_route))
+					break;
+
+				if ($_reRouteKey[$i] == "*") {
+					// get reRouteKey prepared for str_replace
+					if ($i == $totalComparisons-1)
+						unset($_reRouteKey[$i]);
+					else
+						$_reRouteKey[$i] = $_route[$i];
+				}
+				else if ($_reRouteKey[$i] != "*" && $_reRouteKey[$i] != $_route[$i])
+					break;
+			}
+
+			// did we find a match?
+			if ($i == $totalComparisons) {
+				$route = $route == "" ? $reRoute : str_replace(trim(join("/",$_reRouteKey),"/")."/", $reRoute, $route);
+				//echo "route = $route<br/>";
+				$_route = explode("/", $route);
+
+				// controllerType and action can be wildcards
+				$controllerType = MvcRouter::GetControllerType(array_shift($_route));
+				$action = array_shift($_route);
+				$data = is_array($_route) && count($_route) ? array_values(array_diff($_route, array(""))) : array();
+
+				$request->controllerType = $controllerType != "*" ? $controllerType : $request->controllerType;
+				$request->action = $action != "*" ? $action : $request->action;
+
+				// try to preserve request data from source other than query string (e.g. manual request)
+				$request->data = count($data) ? $data: (array_values($request->data) === $request->data ? array() : $request->data);
+				break;
+			}
 		}
 
 		$request->controllerType = preg_replace(self::$routeRequestIgnore, "", $request->controllerType);
@@ -104,8 +126,16 @@ class MvcRouter {
 		return $controllerObject->ExecuteRouteRequest($request);
 	}
 
-	public static function AddReRoute($request, $reRoute) {
-		self::$reRoutes[strtolower($request->controllerType)][strtolower($request->action)] = $reRoute;
+	public static function AddReRoute($route, $reRoute) {
+		$route = strtolower(trim($route));
+		if ($route && $route[strlen($route)-1] != "*") // allow for wildcards (ex: don't add '/' to end of "controller/action/*")
+			$route = trim($route,"/")."/";
+
+		$reRoute = strtolower(trim($reRoute));
+		if ($reRoute && $reRoute[strlen($reRoute)-1] != "*")
+			$reRoute = trim($reRoute,"/")."/";
+
+		self::$reRoutes[$route] = $reRoute;
 	}
 
 	public static function GetControllerName($controllerType) {
@@ -167,11 +197,33 @@ class MvcRouteRequest {
 
 		$this->custom = $custom;
 	}
+
+	function GetRoute() {
+		$route = "";
+
+		// controller
+		if (!$this->controllerType)
+			return $route; // don't continue, even if you have action or data
+		else
+			$route .= MvcRouter::GetControllerName($this->controllerType) . "/";
+
+		// action
+		if (!$this->action)
+			return $route; // don't continue, even if you have data
+		else
+			$route .= $this->action . "/";
+
+		// data
+		$route .= (is_array($this->data) && count($this->data) && array_values($this->data) === $this->data)
+			      ? trim(join("/",$this->data),"/") . "/"
+			      : "";
+
+		return $route;
+	}
 }
 
 MvcRouter::$appRoot = str_ireplace("index.php","",$_SERVER["PHP_SELF"]);
 
-MvcRouter::AddReRoute(new MvcRouteRequest(), new MvcRouteRequest("home"));
-MvcRouter::AddReRoute(new MvcRouteRequest("*",""), new MvcRouteRequest("*","index"));	// default action for any controller
-
+MvcRouter::AddReRoute("","home/index/"); // home is default controller
+MvcRouter::AddReRoute("*/", "*/index/"); // index is default action
 ?>
