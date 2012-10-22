@@ -26,6 +26,7 @@ class MvcModelBinders {
 
 	public static function BindModels(&$controllerObject, $controllerAction, $data=array()) {
 		$controllerObject->boundModels = array();
+		$controllerObject->modelState = new MvcModelState();
 
 		// find the controller action parameters
 		$reflMethod = new ReflectionMethod(get_class($controllerObject), $controllerAction);
@@ -80,7 +81,7 @@ class MvcDefaultModelBinder extends MvcBaseModelBinder {
 		if (@$param->getClass() !== null) {
 			$model = $this->BindClassModel($param->getClass()->name, $data);
 			if ($model instanceof IMvcModelValidator)
-				$modelState = $this->ValidateClassModel($model);
+				$this->ValidateClassModel($modelState, $model);
 		}
 		else
 			$model = $this->FindValue($param->getName(), $data);
@@ -109,9 +110,7 @@ class MvcDefaultModelBinder extends MvcBaseModelBinder {
 		return $model;
 	}
 
-	private function ValidateClassModel($model) {
-		$modelState = new MvcModelState();
-
+	private function ValidateClassModel(&$modelState, $model) {
 		$reflectClass = new ReflectionClass(get_class($model));
 		$classProperties = $reflectClass->getProperties();
 
@@ -121,8 +120,6 @@ class MvcDefaultModelBinder extends MvcBaseModelBinder {
 
 		if ($modelState->IsValid())
 			$modelState->AddError("", $model->ValidateModel());
-
-		return $modelState;
 	}
 }
 
