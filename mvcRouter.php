@@ -160,6 +160,10 @@ class MvcRouter {
 		$path .= $controllerType ? (self::GetControllerName($controllerType) . "/") : "";
 		$path .= $action ? ($action . "/") : "";
 
+		// don't let data turn to lowercase
+		// could mess up $_GET keys, names, etc.
+		if (self::$writeLowercaseUrls) $path = strtolower($path);
+
 		if ($data) {
 			if (!is_array($data) && !is_object($data))
 				$data = array($data);
@@ -173,7 +177,7 @@ class MvcRouter {
 				$path .= "?" . http_build_query($data);
 		}
 		
-		return self::$writeLowercaseUrls ? strtolower($path) : $path;
+		return $path;
 	}
 }
 
