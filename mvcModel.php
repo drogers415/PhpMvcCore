@@ -60,16 +60,19 @@ abstract class MvcBaseModelBinder {
 	protected function FindValue($name, &$data) {
 		// NOTE: See MvcRouteRequest definition for information about "$data."
 
+		$result = null;
+
 		if (isset($data[$name]))
-			return $data[$name];
+			$result =  $data[$name];
 		elseif (isset($_GET[$name]))
-			return $_GET[$name];
+			$result =  $_GET[$name];
 		elseif (isset($_POST[$name]))
-			return $_POST[$name];
+			$result =  $_POST[$name];
 		elseif (count($data) && array_values($data) === $data)
-			return array_shift($data);
-		else
-			return null;
+			$result = array_shift($data);
+		
+
+		return ($result != null) ? stripslashes($result) : $result;
 	}
 }
 
