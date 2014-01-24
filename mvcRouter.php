@@ -94,8 +94,8 @@ class MvcRouter {
 				$action = array_shift($_route);
 				$data = is_array($_route) && count($_route) ? array_values(array_diff($_route, array(""))) : array();
 
-				$request->controllerType = $controllerType != "*" ? $controllerType : $request->controllerType;
-				$request->action = $action != "*" ? $action : $request->action;
+				$request->controllerType = substr($controllerType,0,1) != "*" ? $controllerType : $request->controllerType;
+				$request->action = substr($action,0,1) != "*" ? $action : $request->action;
 
 				// try to preserve request data from source other than query string (e.g. manual request)
 				$request->data = count($data) ? $data: (array_values($request->data) === $request->data ? array() : $request->data);
@@ -120,6 +120,7 @@ class MvcRouter {
 		require_once($controllerFilePath);
 		$controllerObject = new $request->controllerType;
 
+		if (!$request->action) $request->action = "index";
 		if (!method_exists($controllerObject, $request->action))
 			throw new ErrorException("controller type [" . $request->controllerType . "] does not contain the action [" . $request->action . "]", 404);
 
@@ -128,6 +129,7 @@ class MvcRouter {
 
 	public static function AddReRoute($route, $reRoute) {
 		$route = strtolower(trim($route));
+		if ($route == "/") $route = ""; // i.e. - for default controller/index
 		if ($route && $route[strlen($route)-1] != "*") // allow for wildcards (ex: don't add '/' to end of "controller/action/*")
 			$route = trim($route,"/")."/";
 
@@ -224,6 +226,6 @@ class MvcRouteRequest {
 
 MvcRouter::$appRoot = str_ireplace("index.php","",$_SERVER["PHP_SELF"]);
 
-MvcRouter::AddReRoute("","home/index/"); // home is default controller
-MvcRouter::AddReRoute("*/", "*/index/"); // index is default action
+//MvcRouter::AddReRoute("","home/index/"); // home is default controller
+//MvcRouter::AddReRoute("*/", "*/index/"); // index is default action
 ?>
